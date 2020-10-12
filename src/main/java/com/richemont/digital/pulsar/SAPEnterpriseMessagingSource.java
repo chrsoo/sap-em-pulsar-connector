@@ -1,129 +1,131 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-
 package com.richemont.digital.pulsar;
 
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.DefaultConsumer;
-import com.rabbitmq.client.Envelope;
-
-import java.io.IOException;
-import java.util.Map;
-import java.util.Optional;
-
+import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.functions.api.Record;
-import org.apache.pulsar.io.core.PushSource;
+import org.apache.pulsar.io.core.Source;
 import org.apache.pulsar.io.core.SourceContext;
 import org.apache.pulsar.io.core.annotations.Connector;
 import org.apache.pulsar.io.core.annotations.IOType;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import javax.jms.*;
+import java.util.Enumeration;
+import java.util.Map;
+import java.util.Optional;
 
 /**
- * A simple connector to consume messages from a RabbitMQ queue
- *
- * <b>This class was blatantly stolen from https://github.com/apache/pulsar/blob/master/pulsar-io/rabbitmq/src/main/java/org/apache/pulsar/io/rabbitmq/RabbitMQSource.java</b>
- *
- * TODO Refactor for handling AMQP10WS protocol of SAP Enterprise Messaging
+ * A simple connector to move messages from a SAP Enterprise Messaging queue to a Pulsar topic.
  */
 @Connector(
-    name = "rabbitmq",
+    name = "sap-em",
     type = IOType.SOURCE,
-    help = "A simple connector to move messages from a RabbitMQ queue to a Pulsar topic",
+    help = "A simple connector to move messages from a SAP Enterprise Messaging queue to a Pulsar topic",
     configClass = SAPEnterpriseMessagingSourceConfig.class)
-public class SAPEnterpriseMessagingSource extends PushSource<byte[]> {
+public class SAPEnterpriseMessagingSource extends SAPEnterpriseMessagingConnector implements Source<byte[]> {
 
-    private static Logger logger = LoggerFactory.getLogger(SAPEnterpriseMessagingSource.class);
+    private SAPEnterpriseMessagingSinkConfig config;
+    private SourceContext context;
 
-    private Connection rabbitMQConnection;
-    private Channel rabbitMQChannel;
-    private SAPEnterpriseMessagingSourceConfig SAPEnterpriseMessagingSourceConfig;
+    private MessageConsumer consumer;
+    private Logger log;
 
-    @Override
-    public void open(Map<String, Object> config, SourceContext sourceContext) throws Exception {
-        SAPEnterpriseMessagingSourceConfig = SAPEnterpriseMessagingSourceConfig.load(config);
-        SAPEnterpriseMessagingSourceConfig.validate();
+    // -- Source
 
-        ConnectionFactory connectionFactory = SAPEnterpriseMessagingSourceConfig.createConnectionFactory();
-        rabbitMQConnection = connectionFactory.newConnection(SAPEnterpriseMessagingSourceConfig.getConnectionName());
-        logger.info("A new connection to {}:{} has been opened successfully.",
-                rabbitMQConnection.getAddress().getCanonicalHostName(),
-                rabbitMQConnection.getPort()
-        );
-        rabbitMQChannel = rabbitMQConnection.createChannel();
-        rabbitMQChannel.queueDeclare(SAPEnterpriseMessagingSourceConfig.getQueueName(), false, false, false, null);
-        logger.info("Setting channel.basicQos({}, {}).",
-                SAPEnterpriseMessagingSourceConfig.getPrefetchCount(),
-                SAPEnterpriseMessagingSourceConfig.isPrefetchGlobal()
-        );
-        rabbitMQChannel.basicQos(SAPEnterpriseMessagingSourceConfig.getPrefetchCount(), SAPEnterpriseMessagingSourceConfig.isPrefetchGlobal());
-        com.rabbitmq.client.Consumer consumer = new RabbitMQConsumer(this, rabbitMQChannel);
-        rabbitMQChannel.basicConsume(SAPEnterpriseMessagingSourceConfig.getQueueName(), consumer);
-        logger.info("A consumer for queue {} has been successfully started.", SAPEnterpriseMessagingSourceConfig.getQueueName());
+
+    public void open(Map<String, Object> configMap, SourceContext context) throws Exception {
+        this.context = context;
+
+        config = SAPEnterpriseMessagingSinkConfig.load(configMap);
+        config.validate();
+        log = context.getLogger();
+        reconnect(config);
     }
 
     @Override
-    public void close() throws Exception {
-        rabbitMQChannel.close();
-        rabbitMQConnection.close();
-    }
+    public Record<byte[]> read() throws Exception {
+        Message message = receiveMessage();
 
-    private class RabbitMQConsumer extends DefaultConsumer {
-        private SAPEnterpriseMessagingSource source;
-
-        public RabbitMQConsumer(SAPEnterpriseMessagingSource source, Channel channel) {
-            super(channel);
-            this.source = source;
+        Record<byte[]> record;
+        String key = getRoutingKey(message, config.getRoutingKey());
+        if(message instanceof BytesMessage) {
+            BytesMessage bytesMessage = (BytesMessage) message;
+            byte[] byteData = new byte[(int) bytesMessage.getBodyLength()];
+            bytesMessage.readBytes(byteData);
+            record = new SAPEnterpriseMessagingRecord(key, byteData);
+        } else if(message instanceof TextMessage) {
+            TextMessage textMessage = (TextMessage) message;
+            byte[] byteData = textMessage.getText().getBytes();
+            record = new SAPEnterpriseMessagingRecord(key, byteData);
+        } else {
+            String id = message.getJMSMessageID();
+            log.warn("{} - unsupported JMS message {}", id, message.getClass());
+            close();
+            throw new RuntimeException("unhandled JMS message " + message.getClass());
         }
 
-        @Override
-        public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
-            source.consume(new RabbitMQRecord(Optional.ofNullable(envelope.getRoutingKey()), body));
-            long deliveryTag = envelope.getDeliveryTag();
-            // positively acknowledge all deliveries up to this delivery tag to reduce network traffic
-            // since manual message acknowledgments are turned on by default
-            this.getChannel().basicAck(deliveryTag, true);
-        }
+        message.acknowledge();
+        return record;
     }
 
-    static private class RabbitMQRecord implements Record<byte[]> {
+    // -- SAPEnterpriseMessagingConnector
 
-        private final Optional<String> key;
+    @Override
+    protected void doReconnect(Session session, Queue queue) throws JMSException {
+        consumer = session.createConsumer(queue);
+        log.debug("created consumer for {} session", config);
+    }
+
+    // -- SAPEnterpriseMessagingSource
+
+    private Message receiveMessage() throws JMSException {
+        // FIXME find out which exception is thrown for the five minute inactivity and reconnect
+        Message message = consumer.receive();
+        if(log.isTraceEnabled()) {
+            String id = message.getJMSMessageID();
+            log.trace("{} - JMSType: {}", id, message.getJMSType());
+            log.trace("{} - messageClass: {}", id, message.getClass());
+            log.trace("{} - correlationID: {}", id, message.getJMSCorrelationID());
+            Enumeration names = message.getPropertyNames();
+            String name;
+            while(names.hasMoreElements()) {
+                name = (String) names.nextElement();
+                log.trace("{} - property {}: '{}'", id, name, message.getObjectProperty(name));
+            }
+        }
+
+        return message;
+    }
+
+    /**
+     * Return the <a href="https://activemq.apache.org/message-groups">JMSXGroupID</a> and default provided key is empty.
+     * @param message JMS message
+     * @param key default to the provided key
+     * @return the routing key for the message
+     * @throws JMSException if the JMSXGroupID could not be read
+     */
+    private String getRoutingKey(Message message, String key) throws JMSException {
+        String jmsxGroupID = message.getStringProperty(JMSX_GROUP_ID);
+        return StringUtils.isEmpty(jmsxGroupID) ? key : jmsxGroupID;
+    }
+
+    static private class SAPEnterpriseMessagingRecord implements Record<byte[]> {
+
+        private final String key;
         private final byte[] value;
 
-        private RabbitMQRecord(Optional<String> key, byte[] value) {
+        private SAPEnterpriseMessagingRecord(String key, byte[] value) {
             this.key = key;
             this.value = value;
         }
 
         @Override
         public Optional<String> getKey() {
-            return key;
+            return key == null ? Optional.empty() : Optional.of(key);
         }
 
         @Override
         public byte[] getValue() {
             return value;
         }
-
     }
 }

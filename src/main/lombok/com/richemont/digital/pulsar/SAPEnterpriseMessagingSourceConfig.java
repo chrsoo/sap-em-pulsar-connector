@@ -10,13 +10,12 @@ import org.apache.pulsar.io.core.annotations.FieldDoc;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.Map;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-public class SAPEnterpriseMessagingSourceConfig extends SAPEnterpriseMessagingAbstractConfig {
+public class SAPEnterpriseMessagingSourceConfig extends SAPEnterpriseMessagingContext {
 
     private static final long serialVersionUID = 1L;
 
