@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 
 import javax.jms.*;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A simple connector to move messages from a Pulsar topic to an SAP Enterprise Messaging queue.
@@ -53,6 +54,12 @@ public class SAPEnterpriseMessagingSink extends SAPEnterpriseMessagingConnector 
                 message.setStringProperty(JMSX_GROUP_ID, key);
             }
             message.writeBytes(value);
+
+            Set<Map.Entry<String, String>> entries = record.getProperties().entrySet();
+            for(Map.Entry<String, String> entry : entries) {
+                message.setStringProperty(entry.getKey(), entry.getValue());
+            }
+
             producer.send(message, new CompletionListener() {
                 @Override
                 public void onCompletion(Message message) {
@@ -63,7 +70,7 @@ public class SAPEnterpriseMessagingSink extends SAPEnterpriseMessagingConnector 
                     record.fail();
                 }
             });
-        } catch (JMSException e) {
+        } catch(JMSException e) {
             record.fail();
             log.warn("failed to publish the message to SAP Enterprise Messaging: {}", e.getMessage());
         }

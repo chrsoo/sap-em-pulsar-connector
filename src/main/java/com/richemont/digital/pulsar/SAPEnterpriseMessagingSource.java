@@ -63,6 +63,17 @@ public class SAPEnterpriseMessagingSource extends SAPEnterpriseMessagingConnecto
             throw new RuntimeException("unhandled JMS message " + message.getClass());
         }
 
+        String name, value;
+        String id = message.getJMSMessageID();
+        Enumeration keys = message.getPropertyNames();
+        Map<String, String> properties = record.getProperties();
+        while(keys.hasMoreElements()) {
+            name = (String) keys.nextElement();
+            value = message.getStringProperty(name);
+            properties.put(key, value);
+            log.trace("{} - property {}: '{}'", id, name, value);
+        }
+
         message.acknowledge();
         return record;
     }
@@ -85,12 +96,6 @@ public class SAPEnterpriseMessagingSource extends SAPEnterpriseMessagingConnecto
             log.trace("{} - JMSType: {}", id, message.getJMSType());
             log.trace("{} - messageClass: {}", id, message.getClass());
             log.trace("{} - correlationID: {}", id, message.getJMSCorrelationID());
-            Enumeration names = message.getPropertyNames();
-            String name;
-            while(names.hasMoreElements()) {
-                name = (String) names.nextElement();
-                log.trace("{} - property {}: '{}'", id, name, message.getObjectProperty(name));
-            }
         }
 
         return message;

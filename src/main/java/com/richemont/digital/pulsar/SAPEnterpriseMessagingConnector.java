@@ -11,14 +11,14 @@ import javax.jms.Session;
 
 public abstract class SAPEnterpriseMessagingConnector implements AutoCloseable {
 
-    protected static final String JMSX_GROUP_ID = "JMSXGroupID";
+    static final String JMSX_GROUP_ID = "JMSXGroupID";
     private static final Logger log = LoggerFactory.getLogger(SAPEnterpriseMessagingConnector.class);
     private Connection connection;
 
     // -- AutoCloseable
 
     @Override
-    public void close() throws Exception {
+    final public void close() throws Exception {
         if(connection == null) {
             log.debug("connection already closed or was never opened");
         } else {
