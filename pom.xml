@@ -25,6 +25,8 @@
 
         <version.lombok>1.18.14</version.lombok>
         <version.xbem.client>2.0.1</version.xbem.client>
+
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <build>
