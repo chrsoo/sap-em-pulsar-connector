@@ -85,6 +85,15 @@
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-nar-maven-plugin</artifactId>
                 <version>1.2.0</version>
+                <executions>
+                  <execution>
+                    <id>default-nar</id>
+                    <phase>package</phase>
+                    <goals>
+                      <goal>nar</goal>
+                    </goals>
+                  </execution>
+                </executions>
             </plugin>
             <!-- TODO Remove additional source path for JDK8 and lombok if not needed -->
             <plugin>

@@ -17,3 +17,9 @@ https://projectlombok.org/setup/intellij
 
 ### AMQP 1.0 Web Sockets
 [Advanced Message Queuing Protocol (AMQP) WebSocket Binding (WSB) Version 1.0](https://docs.oasis-open.org/amqp-bindmap/amqp-wsb/v1.0/amqp-wsb-v1.0.html)
+
+### Build
+The command to build a nar file.
+```
+$ mvn clean install
+```
