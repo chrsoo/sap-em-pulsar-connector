@@ -35,6 +35,7 @@ import org.apache.pulsar.io.core.annotations.IOType;
 import org.slf4j.Logger;
 
 import javax.jms.*;
+import java.lang.IllegalStateException;
 import java.util.Enumeration;
 import java.util.Map;
 import java.util.Optional;
@@ -50,7 +51,7 @@ import java.util.Optional;
 public class SAPEnterpriseMessagingSource extends SAPEnterpriseMessagingConnector implements Source<byte[]> {
 
     private SAPEnterpriseMessagingSinkConfig config;
-    private SourceContext context;
+    private Session session;
 
     private MessageConsumer consumer;
     private Logger log;
@@ -59,8 +60,6 @@ public class SAPEnterpriseMessagingSource extends SAPEnterpriseMessagingConnecto
 
 
     public void open(Map<String, Object> configMap, SourceContext context) throws Exception {
-        this.context = context;
-
         config = SAPEnterpriseMessagingSinkConfig.load(configMap);
         config.validate();
         log = context.getLogger();
@@ -70,37 +69,19 @@ public class SAPEnterpriseMessagingSource extends SAPEnterpriseMessagingConnecto
     @Override
     public Record<byte[]> read() throws Exception {
         Message message = receiveMessage();
+        Record<byte[]> record = createRecord(session, message);
 
-        Record<byte[]> record;
-        String key = getRoutingKey(message, config.getRoutingKey());
-        if(message instanceof BytesMessage) {
-            BytesMessage bytesMessage = (BytesMessage) message;
-            byte[] byteData = new byte[(int) bytesMessage.getBodyLength()];
-            bytesMessage.readBytes(byteData);
-            record = new SAPEnterpriseMessagingRecord(key, byteData);
-        } else if(message instanceof TextMessage) {
-            TextMessage textMessage = (TextMessage) message;
-            byte[] byteData = textMessage.getText().getBytes();
-            record = new SAPEnterpriseMessagingRecord(key, byteData);
-        } else {
-            String id = message.getJMSMessageID();
-            log.warn("{} - unsupported JMS message {}", id, message.getClass());
-            close();
-            throw new RuntimeException("unhandled JMS message " + message.getClass());
-        }
-
-        String name, value;
+        String key, value;
         String id = message.getJMSMessageID();
         Enumeration keys = message.getPropertyNames();
         Map<String, String> properties = record.getProperties();
         while(keys.hasMoreElements()) {
-            name = (String) keys.nextElement();
-            value = message.getStringProperty(name);
+            key = (String) keys.nextElement();
+            value = message.getStringProperty(key);
             properties.put(key, value);
-            log.trace("{} - property {}: '{}'", id, name, value);
+            log.trace("{} - property {}: '{}'", id, key, value);
         }
 
-        message.acknowledge();
         return record;
     }
 
@@ -108,6 +89,7 @@ public class SAPEnterpriseMessagingSource extends SAPEnterpriseMessagingConnecto
 
     @Override
     protected void doReconnect(Session session, Queue queue) throws JMSException {
+        this.session = session;
         consumer = session.createConsumer(queue);
         log.debug("created consumer for {} session", config);
     }
@@ -139,14 +121,56 @@ public class SAPEnterpriseMessagingSource extends SAPEnterpriseMessagingConnecto
         return StringUtils.isEmpty(jmsxGroupID) ? key : jmsxGroupID;
     }
 
+    private SAPEnterpriseMessagingRecord createRecord(Session session, Message message) throws Exception {
+        String key = getRoutingKey(message, config.getRoutingKey());
+        if(message instanceof BytesMessage) {
+            BytesMessage bytesMessage = (BytesMessage) message;
+            byte[] byteData = new byte[(int) bytesMessage.getBodyLength()];
+            bytesMessage.readBytes(byteData);
+            return new SAPEnterpriseMessagingRecord(message, key, byteData, session);
+        } else if(message instanceof TextMessage) {
+            TextMessage textMessage = (TextMessage) message;
+            byte[] byteData = textMessage.getText().getBytes();
+            return new SAPEnterpriseMessagingRecord(message, key, byteData, session);
+        } else {
+            String id = message.getJMSMessageID();
+            log.warn("{} - unsupported JMS message {}", id, message.getClass());
+            close();
+            throw new RuntimeException("unhandled JMS message " + message.getClass());
+        }
+    }
+
     static private class SAPEnterpriseMessagingRecord implements Record<byte[]> {
 
+        private final Message message;
         private final String key;
         private final byte[] value;
+        private final Session session;
 
-        private SAPEnterpriseMessagingRecord(String key, byte[] value) {
+        SAPEnterpriseMessagingRecord(Message message, String key, byte[] value, Session session) {
+            this.message = message;
             this.key = key;
             this.value = value;
+            this.session = session;
+        }
+
+
+        @Override
+        public void ack() {
+            try {
+                message.acknowledge();
+            } catch (JMSException e) {
+                throw new IllegalStateException("message acknowledge failed", e);
+            }
+        }
+
+        @Override
+        public void fail() {
+            try {
+                session.rollback();
+            } catch (JMSException e) {
+                throw new IllegalStateException("message rollback failed", e);
+            }
         }
 
         @Override
