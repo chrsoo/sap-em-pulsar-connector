@@ -84,7 +84,17 @@
             <plugin>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-nar-maven-plugin</artifactId>
-                <version>1.2.0</version>
+                <version>1.3.2</version>
+                <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <id>nifi-nar-extension</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>nar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <!-- TODO Remove additional source path for JDK8 and lombok if not needed -->
             <plugin>
@@ -104,6 +114,11 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-nar-maven-plugin</artifactId>
+                <version>1.2.0</version>
             </plugin>
             <!-- TODO use delombok to generate classes if we end up not using lombok, then remove -->
             <!-- cf. https://projectlombok.org/setup/maven -->
