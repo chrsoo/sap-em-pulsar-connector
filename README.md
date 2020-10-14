@@ -6,25 +6,32 @@ SAP Enterprise Messaging Connector for Apache Pulsar
 mvn clean package
 ```
 ## Test
-Adapted from [Set up a standalone Pulsar locally](https://pulsar.apache.org/docs/en/standalone/):
+Adapted from [Set up a standalone Pulsar locally](https://pulsar.apache.org/docs/en/standalone/) and 
+[Managing Connectors](https://pulsar.apache.org/docs/en/io-managing/):
 
-1. Open a terminal and do the following
+Open a terminal, change to the `sap-em-pulsar-connector` source directory and do the following...
+
+1. Download and unpack apache pulsar
     ```
-    # download apache pulsar
     curl https://archive.apache.org/dist/pulsar/pulsar-2.6.1/apache-pulsar-2.6.1-bin.tar.gz -O
-    # unpack the archive
     tar xvfz apache-pulsar-2.6.1-bin.tar.gz
-    # edit the connector configuration
+    ```
+1. Edit the connector configuration
+    ```
     sed -i -e 's|^connectorsDirectory: .*$|connectorsDirectory: ../target|g' apache-pulsar-2.6.1/conf/functions_worker.yml
-    # start apache pulsar  
+    ```
+1. Start apache pulsar; logs are printed to standard out  
+    ```
     apache-pulsar-2.6.1/bin/pulsar standalone
+    ```     
+Open another terminal in the `sap-em-pulsar-connector` source directory and do...
+1. Copy the sap-em source example to the pulsar home directory 
     ```
-1. Logs are printed to standard out, open another terminal and configure a source:
-    ```
-    # copy the sap-em source example to the pulsar home directory 
     cp sap-em-source-example.yaml sap-em-source.yaml
-    ## edit sap-em-source.yaml with correct config for SAP Enterise Messaging
-    # create and start the sap-em-source connector 
+    ```
+1. Edit sap-em-source.yaml with correct config for SAP Enterise Messaging
+1. Create and start the sap-em-source connector 
+    ```
     apache-pulsar-2.6.1/bin/pulsar-admin sources create \
         --tenant public \
         --namespace default \
