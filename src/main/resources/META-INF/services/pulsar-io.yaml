@@ -1,4 +1,4 @@
-name: pulsar-sap-em-connector
+name: sap-em
 description: SAP Enterprise Messaging Connector for Apache Pulsar
-sourceClass: fully qualified class name (only if source connector)
-sinkClass: fully qualified class name (only if sink connector)
+sourceClass: com.richemont.digital.pulsar.SAPEnterpriseMessagingSource
+sinkClass: com.richemont.digital.pulsar.SAPEnterpriseMessagingSink
