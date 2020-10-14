@@ -30,8 +30,18 @@ Open another terminal in the `sap-em-pulsar-connector` source directory and do..
     cp sap-em-source-example.yaml sap-em-source.yaml
     ```
 1. Edit sap-em-source.yaml with correct config for SAP Enterise Messaging
-1. Create and start the sap-em-source connector 
+1. Create and start the sap-em-source connector and run it locally 
     ```
+    apache-pulsar-2.6.1/bin/pulsar-admin sources localrun \
+    --tenant public \
+    --namespace default \
+    --name  sap-em-source \
+    --destination-topic-name sap-em-topic \
+    --source-config-file ./sap-em-source.yaml \
+	-a ../target/sap-em-pulsar-connector-1.0.0-SNAPSHOT.nar 
+    ```
+    Run on server (WIP)...    
+    ```    
     apache-pulsar-2.6.1/bin/pulsar-admin sources create \
         --tenant public \
         --namespace default \

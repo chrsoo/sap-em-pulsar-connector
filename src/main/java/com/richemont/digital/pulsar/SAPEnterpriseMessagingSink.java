@@ -37,6 +37,7 @@ import org.slf4j.Logger;
 
 import javax.jms.*;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -46,13 +47,13 @@ import java.util.Set;
         name = "sap-em",
         type = IOType.SINK,
         help = "A simple connector to move messages from a Pulsar topic to an SAP Enterprise Messaging queue.",
-        configClass = SAPEnterpriseMessagingSinkConfig.class
+        configClass = SAPEnterpriseMessagingConfig.class
 )
 public class SAPEnterpriseMessagingSink extends SAPEnterpriseMessagingConnector implements Sink<byte[]> {
 
     private Connection rabbitMQConnection;
     private Channel rabbitMQChannel;
-    private SAPEnterpriseMessagingSinkConfig config;
+    private SAPEnterpriseMessagingConfig config;
     private String exchangeName;
     private String defaultRoutingKey;
 
@@ -64,7 +65,7 @@ public class SAPEnterpriseMessagingSink extends SAPEnterpriseMessagingConnector 
 
     @Override
     public void open(Map<String, Object> configMap, SinkContext context) throws Exception {
-        config = SAPEnterpriseMessagingSinkConfig.load(configMap);
+        config = SAPEnterpriseMessagingConfig.load(configMap);
         config.validate();
         log = context.getLogger();
         reconnect(config);
@@ -73,11 +74,11 @@ public class SAPEnterpriseMessagingSink extends SAPEnterpriseMessagingConnector 
     @Override
     public void write(final Record<byte[]> record) {
         byte[] value = record.getValue();
-        String key = record.getKey().orElseGet(() -> config.getRoutingKey());
         try {
             BytesMessage message = session.createBytesMessage();
-            if(key != null) {
-                message.setStringProperty(JMSX_GROUP_ID, key);
+            Optional<String> key = record.getKey();
+            if(key.isPresent()) {
+                message.setStringProperty(JMSX_GROUP_ID, key.get());
             }
             message.writeBytes(value);
 

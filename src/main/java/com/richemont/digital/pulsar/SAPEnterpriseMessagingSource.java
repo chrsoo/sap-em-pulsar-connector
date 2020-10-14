@@ -47,10 +47,10 @@ import java.util.Optional;
     name = "sap-em",
     type = IOType.SOURCE,
     help = "A simple connector to move messages from a SAP Enterprise Messaging queue to a Pulsar topic",
-    configClass = SAPEnterpriseMessagingSourceConfig.class)
+    configClass = SAPEnterpriseMessagingConfig.class)
 public class SAPEnterpriseMessagingSource extends SAPEnterpriseMessagingConnector implements Source<byte[]> {
 
-    private SAPEnterpriseMessagingSinkConfig config;
+    private SAPEnterpriseMessagingConfig config;
     private Session session;
 
     private MessageConsumer consumer;
@@ -60,7 +60,7 @@ public class SAPEnterpriseMessagingSource extends SAPEnterpriseMessagingConnecto
 
 
     public void open(Map<String, Object> configMap, SourceContext context) throws Exception {
-        config = SAPEnterpriseMessagingSinkConfig.load(configMap);
+        config = SAPEnterpriseMessagingConfig.load(configMap);
         config.validate();
         log = context.getLogger();
         reconnect(config);
@@ -109,20 +109,8 @@ public class SAPEnterpriseMessagingSource extends SAPEnterpriseMessagingConnecto
         return message;
     }
 
-    /**
-     * Return the <a href="https://activemq.apache.org/message-groups">JMSXGroupID</a> and default provided key is empty.
-     * @param message JMS message
-     * @param key default to the provided key
-     * @return the routing key for the message
-     * @throws JMSException if the JMSXGroupID could not be read
-     */
-    private String getRoutingKey(Message message, String key) throws JMSException {
-        String jmsxGroupID = message.getStringProperty(JMSX_GROUP_ID);
-        return StringUtils.isEmpty(jmsxGroupID) ? key : jmsxGroupID;
-    }
-
     private SAPEnterpriseMessagingRecord createRecord(Session session, Message message) throws Exception {
-        String key = getRoutingKey(message, config.getRoutingKey());
+        String key = message.getStringProperty(JMSX_GROUP_ID);
         if(message instanceof BytesMessage) {
             BytesMessage bytesMessage = (BytesMessage) message;
             byte[] byteData = new byte[(int) bytesMessage.getBodyLength()];

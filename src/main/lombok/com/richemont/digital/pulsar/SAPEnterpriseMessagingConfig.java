@@ -26,6 +26,8 @@ package com.richemont.digital.pulsar;
  * #L%
  */
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.base.Preconditions;
 import com.rabbitmq.client.ConnectionFactory;
 import com.sap.cloud.servicesdk.xbem.core.MessagingService;
@@ -42,14 +44,17 @@ import org.springframework.cloud.CloudFactory;
 import org.springframework.cloud.service.ServiceConnectorConfig;
 
 import javax.jms.Queue;
+import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * Configuration object for all SAPEnterpriseMessaging components.
  */
 @Data
 @Accessors(chain = true)
-public abstract class SAPEnterpriseMessagingContext implements Serializable {
+public class SAPEnterpriseMessagingConfig implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -141,6 +146,17 @@ public abstract class SAPEnterpriseMessagingContext implements Serializable {
             throw new IllegalStateException("Unable to create the Connection Factory", e);
         }
     }
+
+    public static SAPEnterpriseMessagingConfig load(String yamlFile) throws IOException {
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        return mapper.readValue(new File(yamlFile), SAPEnterpriseMessagingConfig.class);
+    }
+
+    public static SAPEnterpriseMessagingConfig load(Map<String, Object> map) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.readValue(new ObjectMapper().writeValueAsString(map), SAPEnterpriseMessagingConfig.class);
+    }
+
 
     // -- Object
 
