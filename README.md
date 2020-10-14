@@ -5,6 +5,34 @@ SAP Enterprise Messaging Connector for Apache Pulsar
 ```
 mvn clean package
 ```
+## Test
+Adapted from [Set up a standalone Pulsar locally](https://pulsar.apache.org/docs/en/standalone/):
+
+Open a terminal and do the following
+```
+curl https://archive.apache.org/dist/pulsar/pulsar-2.6.1/apache-pulsar-2.6.1-bin.tar.gz -O
+tar xvfz apache-pulsar-2.6.1-bin.tar.gz
+sed -i -e 's|^connectorsDirectory: .*$|connectorsDirectory: ../target|g' apache-pulsar-2.6.1/conf/functions_worker.yml  
+apache-pulsar-2.6.1/bin/pulsar standalone
+```
+Open another terminal and configure a source
+```
+cp sap-em-source-example.yaml cp sap-em-source.yaml
+# edit sap-em-source.yaml with correct config for SAP Enterise Messaging 
+apache-pulsar-2.6.1/bin/pulsar-admin sources create \
+    --tenant public \
+    --namespace default \
+    --name  sap-em-source \
+    --destination-topic-name sap-em-topic \
+    --source-type sap-em \
+    --source-config-file file:///sap-em-source.yaml
+```
+Start consuming messages
+```
+apache-pulsar-2.6.1/bin/pulsar-client consume sap-em-topic -s "test-subscription"
+```
+Publish messages to your SAP Enterprise Messaging Queue that you configured for the source!
+
 ## Deploy
 
 TODO

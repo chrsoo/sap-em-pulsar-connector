@@ -1,0 +1,7 @@
+configs:
+  connectionName: sap-em-test
+  host:           localhost
+  port:           443
+  username:       guest
+  password:       guest
+  queueName:      my-queue
