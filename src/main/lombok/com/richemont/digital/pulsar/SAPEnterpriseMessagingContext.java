@@ -56,45 +56,45 @@ public abstract class SAPEnterpriseMessagingContext implements Serializable {
     @FieldDoc(
             required = true,
             defaultValue = "",
-            help = "The connection name used for connecting to SAPEnterpriseMessaging")
+            help = "The connection name used for connecting to SAPEnterpriseMessaging.")
     private String connectionName;
 
     @FieldDoc(
             required = true,
             defaultValue = "",
-            help = "The SAPEnterpriseMessaging host to connect to")
+            help = "The SAPEnterpriseMessaging host to connect to.")
     private String host;
 
     @FieldDoc(
             required = true,
             defaultValue = "443",
-            help = "The SAPEnterpriseMessaging port to connect to")
+            help = "The SAPEnterpriseMessaging port to connect to.")
     private int port = 443;
 
     @FieldDoc(
             required = false,
             defaultValue = "guest",
             sensitive = true,
-            help = "The username used to authenticate to SAPEnterpriseMessaging")
+            help = "The username used to authenticate to SAPEnterpriseMessaging.")
     private String username = "guest";
 
     @FieldDoc(
             required = false,
             defaultValue = "guest",
             sensitive = true,
-            help = "The password used to authenticate to SAPEnterpriseMessaging")
+            help = "The password used to authenticate to SAPEnterpriseMessaging.")
     private String password = "guest";
 
     @FieldDoc(
-            required = false,
+            required = true,
             defaultValue = "",
-            help = "The SAPEnterpriseMessaging queue name from which messages should be read from or written to")
+            help = "The SAPEnterpriseMessaging queue name from which messages should be read from or written to.")
     private String queueName;
 
     @FieldDoc(
             required = false,
             defaultValue = "20",
-            help = "Maximum number of attempts at reconnecting before giving up; -1 for unlimited retries")
+            help = "Maximum number of attempts at reconnecting before giving up; -1 for unlimited retries.")
     private int maxReconnectAttempts= 20;
 
     @FieldDoc(
@@ -105,8 +105,8 @@ public abstract class SAPEnterpriseMessagingContext implements Serializable {
 
     @FieldDoc(
             required = false,
-            defaultValue = "3000",
-            help = "Delay in millis between reeconnect attempts after the first")
+            defaultValue = "5000",
+            help = "Delay in millis between reeconnect attempts after the first.")
     private int reconnectDelay= 5000;
 
     public void validate() {

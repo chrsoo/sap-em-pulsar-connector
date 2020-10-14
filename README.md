@@ -1,13 +1,33 @@
-# pulsar-sap-em-connector
+# sap-em-pulsar-connector
 SAP Enterprise Messaging Connector for Apache Pulsar
 
-WIP - DO NOT USE!
+## Build
+```
+mvn clean package
+```
+## Deploy
 
-## Development
+TODO
+
+## Use
+
+Field                 | Required | Default | Description
+--------------------- | -------- | ------- | ------------
+connectionName        | `true`   | -       | The connection name used for connecting to SAPEnterpriseMessaging.
+host                  | `true`   | -       | The SAPEnterpriseMessaging host to connect to.
+port                  | `true`   | 443     | The SAPEnterpriseMessaging port to connect to.
+username              | `false`  | guest   | The username used to authenticate to SAPEnterpriseMessaging.
+password              | `false`  | guest   | The password used to authenticate to SAPEnterpriseMessaging.
+queueName             | `true`   | -       | The SAPEnterpriseMessaging queue name from which messages should be read from or written to.
+maxReconnectAttemptsn | `false`  | 20      | Maximum number of attempts at reconnecting before giving up; -1 for unlimited retries.
+initialReconnectDelay | `false`  | 3000    | Delay in millis before reconnecting after the first failure.
+reconnectDelay        | `false`  | 5000    | Delay in millis between reeconnect attempts after the first.
+
+## Develop
 
 ### IntelliJ configuration
 
-https://projectlombok.org/setup/intellij    
+* https://projectlombok.org/setup/intellij    
 
 ## Reference
 
@@ -16,4 +36,5 @@ https://projectlombok.org/setup/intellij
 * [Messaging Client Java - Samples for Enterprise Messaging](https://github.com/SAP-samples/enterprise-messaging-client-java-samples)
 
 ### AMQP 1.0 Web Sockets
-[Advanced Message Queuing Protocol (AMQP) WebSocket Binding (WSB) Version 1.0](https://docs.oasis-open.org/amqp-bindmap/amqp-wsb/v1.0/amqp-wsb-v1.0.html)
+
+* [Advanced Message Queuing Protocol (AMQP) WebSocket Binding (WSB) Version 1.0](https://docs.oasis-open.org/amqp-bindmap/amqp-wsb/v1.0/amqp-wsb-v1.0.html)
