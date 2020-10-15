@@ -62,17 +62,19 @@ TODO
 
 ## Use
 
-Field                 | Required | Default | Description
---------------------- | -------- | ------- | ------------
-connectionName        | `true`   | -       | The connection name used for connecting to SAPEnterpriseMessaging.
-host                  | `true`   | -       | The SAPEnterpriseMessaging host to connect to.
-port                  | `true`   | 443     | The SAPEnterpriseMessaging port to connect to.
-username              | `false`  | guest   | The username used to authenticate to SAPEnterpriseMessaging.
-password              | `false`  | guest   | The password used to authenticate to SAPEnterpriseMessaging.
-queueName             | `true`   | -       | The SAPEnterpriseMessaging queue name from which messages should be read from or written to.
-maxReconnectAttemptsn | `false`  | 20      | Maximum number of attempts at reconnecting before giving up; -1 for unlimited retries.
-initialReconnectDelay | `false`  | 3000    | Delay in millis before reconnecting after the first failure.
-reconnectDelay        | `false`  | 5000    | Delay in millis between reeconnect attempts after the first.
+Field                 | Required | Default  | Description
+--------------------- | -------- | -------- | ------------
+connectionName        | `true`   | -        | The connection name used for connecting to SAPEnterpriseMessaging.
+xsappname             | `true`   | -        | SAP HANA XS application name.
+clientID              | `true`   | -        | OAuth2 client id.
+clientSecret          | `true`   | -        | OAuth2 client secret.
+tokenEndpoint         | `true`   | -        | OAuth2 token endpoint URL.
+serviceURL            | `true`   | -        | SAP Enterprise Messaging Service URL.
+queueName             | `true`   | -        | The SAPEnterpriseMessaging queue name from which messages should be read from or written to.
+protocol              | `false`  | amqp10ws | SAP Enterprise Messaging protocol.
+maxReconnectAttemptsn | `false`  | 20       | Maximum number of attempts at reconnecting before giving up; -1 for unlimited retries.
+initialReconnectDelay | `false`  | 3000     | Delay in millis before reconnecting after the first failure.
+reconnectDelay        | `false`  | 5000     | Delay in millis between reeconnect attempts after the first.
 
 ## Develop
 

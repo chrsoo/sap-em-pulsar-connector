@@ -29,7 +29,6 @@ package com.richemont.digital.pulsar;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.base.Preconditions;
-import com.rabbitmq.client.ConnectionFactory;
 import com.sap.cloud.servicesdk.xbem.core.MessagingService;
 import com.sap.cloud.servicesdk.xbem.core.MessagingServiceFactory;
 import com.sap.cloud.servicesdk.xbem.core.exception.MessagingException;
@@ -39,11 +38,7 @@ import com.sap.cloud.servicesdk.xbem.extension.sapcp.jms.MessagingServiceJmsSett
 import lombok.Data;
 import lombok.experimental.Accessors;
 import org.apache.pulsar.io.core.annotations.FieldDoc;
-import org.springframework.cloud.Cloud;
-import org.springframework.cloud.CloudFactory;
-import org.springframework.cloud.service.ServiceConnectorConfig;
 
-import javax.jms.Queue;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -67,28 +62,38 @@ public class SAPEnterpriseMessagingConfig implements Serializable {
     @FieldDoc(
             required = true,
             defaultValue = "",
-            help = "The SAPEnterpriseMessaging host to connect to.")
-    private String host;
+            help = "SAP HANA XS application name.")
+    private String xsappname;
 
     @FieldDoc(
             required = true,
-            defaultValue = "443",
-            help = "The SAPEnterpriseMessaging port to connect to.")
-    private int port = 443;
+            defaultValue = "",
+            help = "OAuth2 client id.")
+    private String clientID;
 
     @FieldDoc(
-            required = false,
-            defaultValue = "guest",
-            sensitive = true,
-            help = "The username used to authenticate to SAPEnterpriseMessaging.")
-    private String username = "guest";
+            required = true,
+            defaultValue = "",
+            help = "OAuth2 client secret.")
+    private String clientSecret;
 
     @FieldDoc(
-            required = false,
-            defaultValue = "guest",
-            sensitive = true,
-            help = "The password used to authenticate to SAPEnterpriseMessaging.")
-    private String password = "guest";
+            required = true,
+            defaultValue = "",
+            help = "OAuth2 token endpoint URL.")
+    private String tokenEndpoint;
+
+    @FieldDoc(
+            required = true,
+            defaultValue = "",
+            help = "SAP Enterprise Messaging Service URL.")
+    private String serviceURL;
+
+    @FieldDoc(
+            required = true,
+            defaultValue = "amqp10ws",
+            help = "SAP Enterprise Messaging protocol.")
+    private String protocol = "amqp10ws";
 
     @FieldDoc(
             required = true,
@@ -115,10 +120,14 @@ public class SAPEnterpriseMessagingConfig implements Serializable {
     private int reconnectDelay= 5000;
 
     public void validate() {
-        Preconditions.checkNotNull(host, "host property not set.");
-        Preconditions.checkNotNull(port, "port property not set.");
-        Preconditions.checkNotNull(queueName, "queueName property not set.");
         Preconditions.checkNotNull(connectionName, "connectionName property not set.");
+        Preconditions.checkNotNull(clientID, "clientID property not set.");
+        Preconditions.checkNotNull(clientSecret, "clientSecret property not set.");
+        Preconditions.checkNotNull(tokenEndpoint, "clientSecret property not set.");
+        Preconditions.checkNotNull(protocol, "protocol property not set.");
+        Preconditions.checkNotNull(serviceURL, "serviceURL property not set.");
+        Preconditions.checkNotNull(xsappname, "xsappname property not set.");
+        Preconditions.checkNotNull(queueName, "queueName property not set.");
     }
 
     String getDestination() {
@@ -126,13 +135,21 @@ public class SAPEnterpriseMessagingConfig implements Serializable {
     }
 
     MessagingServiceJmsConnectionFactory getMessagingServiceJmsConnectionFactory() {
-        Cloud cloud = new CloudFactory().getCloud();
-        MessagingService service = cloud.getSingletonServiceConnector(
-                MessagingService.class, null);
+//        Cloud cloud = new CloudFactory().getCloud();
+//        MessagingService service = cloud.getSingletonServiceConnector(MessagingService.class, null);
+//        if (service == null) {
+//            throw new IllegalStateException("Unable to create the MessagingService.");
+//        }
 
-        if (service == null) {
-            throw new IllegalStateException("Unable to create the MessagingService.");
-        }
+        MessagingService service = new MessagingService();
+        service.setServiceUrl(serviceURL);
+        service.setClientId(clientID);
+        service.setClientSecret(clientSecret);
+        service.setOAuthTokenEndpoint(tokenEndpoint);
+        service.setProtocol(protocol);
+        service.setXsappname(xsappname);
+
+        // service.setSubdomain("");
 
         MessagingServiceFactory factory = MessagingServiceFactoryCreator.createFactory(service);
 
@@ -141,6 +158,7 @@ public class SAPEnterpriseMessagingConfig implements Serializable {
             settings.setMaxReconnectAttempts(maxReconnectAttempts); // use -1 for unlimited attempts
             settings.setInitialReconnectDelay(initialReconnectDelay);
             settings.setReconnectDelay(reconnectDelay);
+
             return factory.createConnectionFactory(MessagingServiceJmsConnectionFactory.class, settings);
         } catch (MessagingException e) {
             throw new IllegalStateException("Unable to create the Connection Factory", e);
@@ -161,6 +179,6 @@ public class SAPEnterpriseMessagingConfig implements Serializable {
     // -- Object
 
     public String toString() {
-        return "[" + connectionName + "](https:" + host + (port == 443 ? "" : ":" + port) + "/protocols/amqp10ws)";
+        return "[" + connectionName + "](" + queueName + ")";
     }
 }

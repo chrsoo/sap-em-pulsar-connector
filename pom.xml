@@ -115,11 +115,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-nar-maven-plugin</artifactId>
-                <version>1.2.0</version>
-            </plugin>
             <!-- TODO use delombok to generate classes if we end up not using lombok, then remove -->
             <!-- cf. https://projectlombok.org/setup/maven -->
             <!--
@@ -182,6 +177,7 @@
         </dependency>
 
         <!-- SAP Dependencies -->
+
         <dependency>
             <groupId>com.sap.cloud.servicesdk.xbem</groupId>
             <artifactId>emjapi-connector-sap-cp</artifactId>

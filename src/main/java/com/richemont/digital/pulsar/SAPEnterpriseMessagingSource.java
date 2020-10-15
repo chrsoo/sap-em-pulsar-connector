@@ -26,7 +26,6 @@ package com.richemont.digital.pulsar;
  * #L%
  */
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.functions.api.Record;
 import org.apache.pulsar.io.core.Source;
 import org.apache.pulsar.io.core.SourceContext;

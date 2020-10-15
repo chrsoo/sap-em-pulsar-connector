@@ -59,9 +59,10 @@ public abstract class SAPEnterpriseMessagingConnector implements AutoCloseable {
 
     private Connection createConnection(SAPEnterpriseMessagingConfig config) throws JMSException {
         MessagingServiceJmsConnectionFactory factory = config.getMessagingServiceJmsConnectionFactory();
-        return config.getUsername() == null
-                ? factory.createConnection()
-                : factory.createConnection(config.getUsername(), config.getPassword());
+        return factory.createConnection();
+//        return config.getUsername() == null
+//                ? factory.createConnection()
+//                : factory.createConnection(config.getUsername(), config.getPassword());
     }
 
     final void reconnect(SAPEnterpriseMessagingConfig config) throws JMSException {
