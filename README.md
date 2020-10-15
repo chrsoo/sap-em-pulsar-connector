@@ -48,7 +48,7 @@ Open another terminal in the `sap-em-pulsar-connector` source directory and do..
         --name  sap-em-source \
         --destination-topic-name sap-em-topic \
         --source-type sap-em \
-        --source-config-file file:///sap-em-source.yaml
+        --source-config-file ./sap-em-source.yaml
     ```
 1. Start consuming messages from SAP Enterprise Messaging in Apache Pulsar
     ```
