@@ -1,4 +1,6 @@
 name: sap-em
 description: SAP Enterprise Messaging Connector for Apache Pulsar
 sourceClass: com.richemont.digital.pulsar.SAPEnterpriseMessagingSource
+sourceConfig: com.richemont.digital.pulsar.SAPEnterpriseMessagingConfig
 sinkClass: com.richemont.digital.pulsar.SAPEnterpriseMessagingSink
+sinkConfig: com.richemont.digital.pulsar.SAPEnterpriseMessagingConfig
