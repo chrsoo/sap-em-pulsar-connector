@@ -9,38 +9,31 @@ mvn clean package
 Adapted from [Set up a standalone Pulsar locally](https://pulsar.apache.org/docs/en/standalone/) and 
 [Managing Connectors](https://pulsar.apache.org/docs/en/io-managing/):
 
-Open a terminal, change to the `sap-em-pulsar-connector` source directory and do the following...
 
+1. Open the **first** terminal window and change to the `sap-em-pulsar-connector` source directory
 1. Download and unpack apache pulsar
     ```
     curl https://archive.apache.org/dist/pulsar/pulsar-2.6.1/apache-pulsar-2.6.1-bin.tar.gz -O
     tar xvfz apache-pulsar-2.6.1-bin.tar.gz
     ```
-1. Edit the connector configuration
+1. Add the `target` folder to the connector configuration
     ```
-    sed -i -e 's|^connectorsDirectory: .*$|connectorsDirectory: ../target|g' apache-pulsar-2.6.1/conf/functions_worker.yml
+    sed -i -e 's|^connectorsDirectory: .*$|connectorsDirectory: ../target|g' \
+    apache-pulsar-2.6.1/conf/functions_worker.yml
     ```
 1. Start apache pulsar; logs are printed to standard out  
     ```
     apache-pulsar-2.6.1/bin/pulsar standalone
     ```     
-Open another terminal in the `sap-em-pulsar-connector` source directory and do...
-1. Copy the sap-em source example to the pulsar home directory 
+1. Open a **second** terminal window and change to the `sap-em-pulsar-connector` source directory
+1. Copy the `sap-em-source-example.yaml` and `sap-em-sink-example.yaml` examples to the pulsar home directory 
     ```
-    cp sap-em-source-example.yaml sap-em-source.yaml
+    cp sap-em-source-example.yaml apache-pulsar-2.6.1/sap-em-source.yaml
+    cp sap-em-sink-example.yaml apache-pulsar-2.6.1/sap-em-sink.yaml
     ```
-1. Edit sap-em-source.yaml with correct config for SAP Enterise Messaging
-1. Create and start the sap-em-source connector and run it locally 
-    ```
-    apache-pulsar-2.6.1/bin/pulsar-admin sources localrun \
-    --tenant public \
-    --namespace default \
-    --name  sap-em-source \
-    --destination-topic-name sap-em-topic \
-    --source-config-file ./sap-em-source.yaml \
-	-a ../target/sap-em-pulsar-connector-1.0.0-SNAPSHOT.nar 
-    ```
-    Run on server (WIP)...    
+1. Edit the `sap-em-source.yaml` and `sap-em-source.yaml` configs with the correct correct values for your 
+SAP Enterprise Messaging instance.
+1. Create and start the **sap-em-source** connector
     ```    
     apache-pulsar-2.6.1/bin/pulsar-admin sources create \
         --tenant public \
@@ -50,11 +43,78 @@ Open another terminal in the `sap-em-pulsar-connector` source directory and do..
         --source-type sap-em \
         --source-config-file ./sap-em-source.yaml
     ```
-1. Start consuming messages from SAP Enterprise Messaging in Apache Pulsar
+    _Alternatively_ it can be run locally in its own window:
     ```
-    apache-pulsar-2.6.1/bin/pulsar-client consume sap-em-topic -s "test-subscription"
+    apache-pulsar-2.6.1/bin/pulsar-admin sources localrun \
+    --tenant public \
+    --namespace default \
+    --name  sap-em-source \
+    --destination-topic-name sap-em-topic \
+    --source-config-file ./sap-em-source.yaml \
+    --archive ../target/sap-em-pulsar-connector-1.0.0-SNAPSHOT.nar 
     ```
-1. Publish messages to your SAP Enterprise Messaging Queue that you configured for the source!
+1. Create and start the **sap-em-sink** connector
+    ```    
+    apache-pulsar-2.6.1/bin/pulsar-admin sinks create \
+        --tenant public \
+        --namespace default \
+        --name  sap-em-sink \
+        --inputs sap-em-topic \
+        --sink-type sap-em \
+        --sink-config-file ./sap-em-sink.yaml
+    ```
+    _Alternatively_ it can be run locally in its own window:
+    ```
+    apache-pulsar-2.6.1/bin/pulsar-admin sinks localrun \
+    --tenant public \
+    --namespace default \
+    --name  sap-em-sink \
+    --inputs sap-em-topic \
+    --sink-config-file ./sap-em-sink.yaml \
+    --archive ../target/sap-em-pulsar-connector-1.0.0-SNAPSHOT.nar
+    ```  
+ 1. Retrieve an SAP Enterprise Messaging access token 
+    ```
+    export CLIENT_ID='<clientid>'
+    export CLIENT_SECRET='<clientsecret>'
+    export CLIENT_CREDENTIALS="$(echo "${CLIENT_ID}${CLIENT_SECRET}" | base64)"
+    
+    export TOKEN_ENDPOINT='<tokenendpoint>'
+    
+    export ACCESS_TOKEN=$(curl --location -c cookies.txt \
+    --request POST "${TOKEN_ENDPOINT}?grant_type=client_credentials&response_type=token" \
+    --header "Authorization: Basic ${CLIENT_CREDENTIALS}" | jq -r '.access_token')
+    ```
+    ... where the `CLIENT_CREDENTIALS` envar is the Base64 encoded `clientid` and `clientsecret` separated 
+    by a single colon character and `TOKEN_ENDPOINT` is the URL for retrieving access tokens.
+    
+    Note that the above assumes you have [installed jq](https://stedolan.github.io/jq/tutorial/)
+ 1. Publish a test message to the SAP Enterprise Messaging queue you configured for the `sap-em-source`:
+    ```
+    export QUEUE_API="https://enterprise-messaging-pubsub.cfapps.eu10.hana.ondemand.com/messagingrest/v1/queues"
+    
+    export SAP2PULSAR="sap2pulsar"
+    
+    curl --location --request POST "${QUEUE_API}/${SAP2PULSAR}/messages" \
+    --header 'x-qos: 0' \
+    --header 'Authorization: Bearer ${ACCESS_TOKEN}' \
+    --header 'Content-Type: application/json' \
+    --data-raw '{
+        "hello": "world"
+    }'    
+     ```
+ 1. Consume the test message from the queue connected to the SAP Enterprise Messaging topic you configured for the `sap-em-sink`:
+    ```
+    PULSAR2SAP="pulsar2sap"
+  
+    curl --location --request POST "${QUEUE_API}/${PULSAR2SAP}/messages/consumption" \
+    --header 'x-qos: 0' \
+    --header 'Authorization: Bearer ${ACCESS_TOKEN}' \
+    --header 'Content-Type: application/json' \
+    --data-raw '{
+        "hello": "world"
+    }'    
+    ```
 
 ## Deploy
 
