@@ -105,15 +105,12 @@ SAP Enterprise Messaging instance.
      ```
  1. Consume the test message from the queue connected to the SAP Enterprise Messaging topic you configured for the `sap-em-sink`:
     ```
-    PULSAR2SAP="pulsar2sap"
+    export PULSAR2SAP="pulsar2sap"
   
     curl --location --request POST "${QUEUE_API}/${PULSAR2SAP}/messages/consumption" \
     --header 'x-qos: 0' \
     --header 'Authorization: Bearer ${ACCESS_TOKEN}' \
-    --header 'Content-Type: application/json' \
-    --data-raw '{
-        "hello": "world"
-    }'    
+    --header 'Content-Type: application/json'   
     ```
 
 ## Deploy
@@ -130,7 +127,7 @@ clientID              | `true`   | -        | OAuth2 client id.
 clientSecret          | `true`   | -        | OAuth2 client secret.
 tokenEndpoint         | `true`   | -        | OAuth2 token endpoint URL.
 serviceURL            | `true`   | -        | SAP Enterprise Messaging Service URL.
-queueName             | `true`   | -        | The SAPEnterpriseMessaging queue name from which messages should be read from or written to.
+destination           | `true`   | -        | The SAPEnterpriseMessaging destination name optionally prefixed with 'topic:'; if not prefixed 'queue:' is assumed.   
 protocol              | `false`  | amqp10ws | SAP Enterprise Messaging protocol.
 maxReconnectAttemptsn | `false`  | 20       | Maximum number of attempts at reconnecting before giving up; -1 for unlimited retries.
 initialReconnectDelay | `false`  | 3000     | Delay in millis before reconnecting after the first failure.
