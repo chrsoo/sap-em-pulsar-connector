@@ -62,7 +62,6 @@ public class SAPEnterpriseMessagingSource extends SAPEnterpriseMessagingConnecto
 
     @Override
     public Record<byte[]> read() throws Exception {
-        // FIXME find out which exception is thrown for the five minute inactivity and open
         Message message = consumer.receive();
         if(log.isTraceEnabled()) {
             String id = message.getJMSMessageID();
@@ -76,9 +75,9 @@ public class SAPEnterpriseMessagingSource extends SAPEnterpriseMessagingConnecto
     // -- SAPEnterpriseMessagingConnector
 
     @Override
-    protected void connect(Session session, Queue queue) throws JMSException {
+    protected void connect(Session session, Destination destination) throws JMSException {
         this.session = session;
-        consumer = session.createConsumer(queue);
+        consumer = session.createConsumer(destination);
         log.debug("created consumer for {} session", getConfig());
     }
 
@@ -96,8 +95,7 @@ public class SAPEnterpriseMessagingSource extends SAPEnterpriseMessagingConnecto
             byte[] byteData = textMessage.getText().getBytes();
             return new SAPEnterpriseMessagingRecord(message, key, byteData, session);
         } else {
-            String id = message.getJMSMessageID();
-            log.warn("{} - unsupported JMS message {}", id, message.getClass());
+            log.warn("{} - unsupported JMS message {}", message.getJMSMessageID(), message.getClass());
             close();
             throw new RuntimeException("unhandled JMS message " + message.getClass());
         }

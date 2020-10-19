@@ -30,10 +30,7 @@ import com.sap.cloud.servicesdk.xbem.extension.sapcp.jms.MessagingServiceJmsConn
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jms.Connection;
-import javax.jms.JMSException;
-import javax.jms.Queue;
-import javax.jms.Session;
+import javax.jms.*;
 import java.io.IOException;
 import java.util.Map;
 
@@ -79,14 +76,23 @@ public abstract class SAPEnterpriseMessagingConnector implements AutoCloseable {
         Session session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
         log.debug("created session for {} connection", config);
 
-        Queue queue = session.createQueue(config.getDestination());
-        connect(session, queue);
+        Destination destination = createJMSDestination(session);
+        connect(session, destination);
 
         connection.start();
         log.info("listening for messages on {}", config);
     }
 
-    abstract void connect(Session session, Queue queue) throws JMSException;
+    private Destination createJMSDestination(Session session) throws JMSException {
+        String jmsDestination = config.getJMSDestination();
+
+        return jmsDestination.startsWith("queue:")
+                ? session.createQueue(jmsDestination)
+                : session.createTopic(jmsDestination);
+    }
+
+
+    abstract void connect(Session session, Destination queue) throws JMSException;
 
     // -- getters
 

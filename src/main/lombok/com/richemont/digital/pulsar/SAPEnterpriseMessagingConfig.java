@@ -39,6 +39,9 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 import org.apache.pulsar.io.core.annotations.FieldDoc;
 
+import javax.jms.Destination;
+import javax.jms.JMSException;
+import javax.jms.Session;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -97,9 +100,9 @@ public class SAPEnterpriseMessagingConfig implements Serializable {
 
     @FieldDoc(
             required = true,
-            defaultValue = "",
-            help = "The SAPEnterpriseMessaging queue name from which messages should be read from or written to.")
-    private String queueName;
+            defaultValue = "queue:destination",
+            help = "The SAPEnterpriseMessaging destination name optionally prefixed with 'topic:'; if not prefixed 'queue:' is assumed.")
+    private String destination;
 
     @FieldDoc(
             required = false,
@@ -127,11 +130,11 @@ public class SAPEnterpriseMessagingConfig implements Serializable {
         Preconditions.checkNotNull(protocol, "protocol property not set.");
         Preconditions.checkNotNull(serviceURL, "serviceURL property not set.");
         Preconditions.checkNotNull(xsappname, "xsappname property not set.");
-        Preconditions.checkNotNull(queueName, "queueName property not set.");
+        Preconditions.checkNotNull(destination, "destination property not set.");
     }
 
-    String getDestination() {
-        return queueName.startsWith("queue:") ? queueName : "queue:" + queueName;
+    String getJMSDestination() {
+        return destination.contains(":") ? destination : "queue:" + destination;
     }
 
     MessagingServiceJmsConnectionFactory getMessagingServiceJmsConnectionFactory() {
@@ -179,6 +182,6 @@ public class SAPEnterpriseMessagingConfig implements Serializable {
     // -- Object
 
     public String toString() {
-        return "[" + connectionName + "](" + queueName + ")";
+        return "[" + connectionName + "](" + getJMSDestination() + ")";
     }
 }

@@ -103,9 +103,9 @@ public class SAPEnterpriseMessagingSink extends SAPEnterpriseMessagingConnector 
     // -- SAPEnterpriseMessagingConnector
 
     @Override
-    void connect(Session session, Queue queue) throws JMSException {
+    void connect(Session session, Destination destination) throws JMSException {
         this.session = session;
-        producer = session.createProducer(queue);
+        producer = session.createProducer(destination);
     }
 
 }
