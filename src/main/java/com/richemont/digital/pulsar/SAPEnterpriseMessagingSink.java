@@ -34,6 +34,7 @@ import org.apache.pulsar.io.core.SinkContext;
 import org.apache.pulsar.io.core.annotations.Connector;
 import org.apache.pulsar.io.core.annotations.IOType;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
 import java.util.Map;
@@ -57,7 +58,6 @@ public class SAPEnterpriseMessagingSink extends SAPEnterpriseMessagingConnector 
     private String exchangeName;
     private String defaultRoutingKey;
 
-    private Logger log;
     private MessageProducer producer;
     private Session session;
 
@@ -65,10 +65,7 @@ public class SAPEnterpriseMessagingSink extends SAPEnterpriseMessagingConnector 
 
     @Override
     public void open(Map<String, Object> configMap, SinkContext context) throws Exception {
-        config = SAPEnterpriseMessagingConfig.load(configMap);
-        config.validate();
-        log = context.getLogger();
-        reconnect(config);
+        open(configMap, context.getLogger());
     }
 
     @Override
@@ -106,7 +103,7 @@ public class SAPEnterpriseMessagingSink extends SAPEnterpriseMessagingConnector 
     // -- SAPEnterpriseMessagingConnector
 
     @Override
-    void doReconnect(Session session, Queue queue) throws JMSException {
+    void connect(Session session, Queue queue) throws JMSException {
         this.session = session;
         producer = session.createProducer(queue);
     }

@@ -34,12 +34,15 @@ import javax.jms.Connection;
 import javax.jms.JMSException;
 import javax.jms.Queue;
 import javax.jms.Session;
+import java.io.IOException;
+import java.util.Map;
 
 public abstract class SAPEnterpriseMessagingConnector implements AutoCloseable {
 
     static final String JMSX_GROUP_ID = "JMSXGroupID";
-    private static final Logger log = LoggerFactory.getLogger(SAPEnterpriseMessagingConnector.class);
+    protected Logger log = LoggerFactory.getLogger(SAPEnterpriseMessagingConnector.class);
     private Connection connection;
+    private SAPEnterpriseMessagingConfig config;
 
     // -- AutoCloseable
 
@@ -47,11 +50,11 @@ public abstract class SAPEnterpriseMessagingConnector implements AutoCloseable {
     final public void close() throws Exception {
         if(connection == null) {
             log.debug("connection already closed or was never opened");
-        } else {
-            log.debug("closing connection");
-            connection.close();
-            log.info("closed connection");
+            return;
         }
+        log.debug("closing connection");
+        connection.close();
+        log.info("closed connection");
         connection = null;
     }
 
@@ -65,7 +68,11 @@ public abstract class SAPEnterpriseMessagingConnector implements AutoCloseable {
 //                : factory.createConnection(config.getUsername(), config.getPassword());
     }
 
-    final void reconnect(SAPEnterpriseMessagingConfig config) throws JMSException {
+    final void open(Map<String, Object> configMap, Logger logger) throws JMSException, IOException {
+        config = SAPEnterpriseMessagingConfig.load(configMap);
+        config.validate();
+        log = logger;
+
         connection = createConnection(config);
         log.debug("created connection for {} config", config);
 
@@ -73,11 +80,17 @@ public abstract class SAPEnterpriseMessagingConnector implements AutoCloseable {
         log.debug("created session for {} connection", config);
 
         Queue queue = session.createQueue(config.getDestination());
-        doReconnect(session, queue);
+        connect(session, queue);
 
         connection.start();
         log.info("listening for messages on {}", config);
     }
 
-    abstract void doReconnect(Session session, Queue queue) throws JMSException;
+    abstract void connect(Session session, Queue queue) throws JMSException;
+
+    // -- getters
+
+    protected SAPEnterpriseMessagingConfig getConfig() {
+        return config;
+    }
 }

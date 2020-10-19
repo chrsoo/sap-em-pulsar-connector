@@ -32,12 +32,12 @@ import org.apache.pulsar.io.core.SourceContext;
 import org.apache.pulsar.io.core.annotations.Connector;
 import org.apache.pulsar.io.core.annotations.IOType;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
+import javax.jms.Queue;
 import java.lang.IllegalStateException;
-import java.util.Enumeration;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * A simple connector to move messages from a SAP Enterprise Messaging queue to a Pulsar topic.
@@ -49,54 +49,20 @@ import java.util.Optional;
     configClass = SAPEnterpriseMessagingConfig.class)
 public class SAPEnterpriseMessagingSource extends SAPEnterpriseMessagingConnector implements Source<byte[]> {
 
-    private SAPEnterpriseMessagingConfig config;
     private Session session;
 
     private MessageConsumer consumer;
-    private Logger log;
+    private Logger log = LoggerFactory.getLogger(SAPEnterpriseMessagingSource.class);
 
     // -- Source
 
-
     public void open(Map<String, Object> configMap, SourceContext context) throws Exception {
-        config = SAPEnterpriseMessagingConfig.load(configMap);
-        config.validate();
-        log = context.getLogger();
-        reconnect(config);
+        open(configMap, context.getLogger());
     }
 
     @Override
     public Record<byte[]> read() throws Exception {
-        Message message = receiveMessage();
-        Record<byte[]> record = createRecord(session, message);
-
-        String key, value;
-        String id = message.getJMSMessageID();
-        Enumeration keys = message.getPropertyNames();
-        Map<String, String> properties = record.getProperties();
-        while(keys.hasMoreElements()) {
-            key = (String) keys.nextElement();
-            value = message.getStringProperty(key);
-            properties.put(key, value);
-            log.trace("{} - property {}: '{}'", id, key, value);
-        }
-
-        return record;
-    }
-
-    // -- SAPEnterpriseMessagingConnector
-
-    @Override
-    protected void doReconnect(Session session, Queue queue) throws JMSException {
-        this.session = session;
-        consumer = session.createConsumer(queue);
-        log.debug("created consumer for {} session", config);
-    }
-
-    // -- SAPEnterpriseMessagingSource
-
-    private Message receiveMessage() throws JMSException {
-        // FIXME find out which exception is thrown for the five minute inactivity and reconnect
+        // FIXME find out which exception is thrown for the five minute inactivity and open
         Message message = consumer.receive();
         if(log.isTraceEnabled()) {
             String id = message.getJMSMessageID();
@@ -104,9 +70,19 @@ public class SAPEnterpriseMessagingSource extends SAPEnterpriseMessagingConnecto
             log.trace("{} - messageClass: {}", id, message.getClass());
             log.trace("{} - correlationID: {}", id, message.getJMSCorrelationID());
         }
-
-        return message;
+        return createRecord(session, message);
     }
+
+    // -- SAPEnterpriseMessagingConnector
+
+    @Override
+    protected void connect(Session session, Queue queue) throws JMSException {
+        this.session = session;
+        consumer = session.createConsumer(queue);
+        log.debug("created consumer for {} session", getConfig());
+    }
+
+    // -- SAPEnterpriseMessagingSource
 
     private SAPEnterpriseMessagingRecord createRecord(Session session, Message message) throws Exception {
         String key = message.getStringProperty(JMSX_GROUP_ID);
@@ -133,12 +109,32 @@ public class SAPEnterpriseMessagingSource extends SAPEnterpriseMessagingConnecto
         private final String key;
         private final byte[] value;
         private final Session session;
+        private final Map<String, String> properties;
 
-        SAPEnterpriseMessagingRecord(Message message, String key, byte[] value, Session session) {
+        SAPEnterpriseMessagingRecord(Message message, String key, byte[] value, Session session) throws JMSException {
             this.message = message;
             this.key = key;
             this.value = value;
             this.session = session;
+
+            Enumeration keys = message.getPropertyNames();
+            if(keys.hasMoreElements()) {
+                this.properties = mapProperties(message, keys);
+            } else {
+                this.properties = Collections.emptyMap();
+            }
+        }
+
+        private static Map<String, String> mapProperties(Message message, Enumeration keys) throws JMSException {
+            String key, value;
+            String id = message.getJMSMessageID();
+            Map<String, String> properties = new HashMap<>();
+            while(keys.hasMoreElements()) {
+                key = (String) keys.nextElement();
+                value = message.getStringProperty(key);
+                properties.put(key, value);
+            }
+            return properties;
         }
 
 
@@ -169,5 +165,11 @@ public class SAPEnterpriseMessagingSource extends SAPEnterpriseMessagingConnecto
         public byte[] getValue() {
             return value;
         }
+
+        @Override
+        public Map<String, String> getProperties() {
+            return properties;
+        }
+
     }
 }
