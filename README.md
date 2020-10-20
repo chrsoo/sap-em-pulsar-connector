@@ -46,12 +46,12 @@ SAP Enterprise Messaging instance.
     _Alternatively_ it can be run locally in its own window:
     ```
     apache-pulsar-2.6.1/bin/pulsar-admin sources localrun \
-    --tenant public \
-    --namespace default \
-    --name  sap-em-source \
-    --destination-topic-name sap-em-topic \
-    --source-config-file ./sap-em-source.yaml \
-    --archive ../target/sap-em-pulsar-connector-1.0.0-SNAPSHOT.nar 
+        --tenant public \
+        --namespace default \
+        --name  sap-em-source \
+        --destination-topic-name sap-em-topic \
+        --source-config-file ./sap-em-source.yaml \
+        --archive ../target/sap-em-pulsar-connector-1.0.0-SNAPSHOT.nar 
     ```
 1. Create and start the **sap-em-sink** connector
     ```    
@@ -66,12 +66,12 @@ SAP Enterprise Messaging instance.
     _Alternatively_ it can be run locally in its own window:
     ```
     apache-pulsar-2.6.1/bin/pulsar-admin sinks localrun \
-    --tenant public \
-    --namespace default \
-    --name  sap-em-sink \
-    --inputs sap-em-topic \
-    --sink-config-file ./sap-em-sink.yaml \
-    --archive ../target/sap-em-pulsar-connector-1.0.0-SNAPSHOT.nar
+        --tenant public \
+        --namespace default \
+        --name  sap-em-sink \
+        --inputs sap-em-topic \
+        --sink-config-file ./sap-em-sink.yaml \
+        --archive ../target/sap-em-pulsar-connector-1.0.0-SNAPSHOT.nar
     ```  
  1. Retrieve an SAP Enterprise Messaging access token 
     ```
@@ -82,8 +82,8 @@ SAP Enterprise Messaging instance.
     export TOKEN_ENDPOINT='<tokenendpoint>'
     
     export ACCESS_TOKEN=$(curl --location -c cookies.txt \
-    --request POST "${TOKEN_ENDPOINT}?grant_type=client_credentials&response_type=token" \
-    --header "Authorization: Basic ${CLIENT_CREDENTIALS}" | jq -r '.access_token')
+        --request POST "${TOKEN_ENDPOINT}?grant_type=client_credentials&response_type=token" \
+        --header "Authorization: Basic ${CLIENT_CREDENTIALS}" | jq -r '.access_token')
     ```
     ... where the `CLIENT_CREDENTIALS` envar is the Base64 encoded `clientid` and `clientsecret` separated 
     by a single colon character and `TOKEN_ENDPOINT` is the URL for retrieving access tokens.
@@ -96,28 +96,44 @@ SAP Enterprise Messaging instance.
     export SAP2PULSAR="sap2pulsar"
     
     curl --location --request POST "${QUEUE_API}/${SAP2PULSAR}/messages" \
-    --header 'x-qos: 0' \
-    --header 'Authorization: Bearer ${ACCESS_TOKEN}' \
-    --header 'Content-Type: application/json' \
-    --data-raw '{
-        "hello": "world"
-    }'    
+        --header 'x-qos: 0' \
+        --header 'Authorization: Bearer ${ACCESS_TOKEN}' \
+        --header 'Content-Type: application/json' \
+        --data-raw '{
+            "hello": "world"
+        }'    
      ```
  1. Consume the test message from the queue connected to the SAP Enterprise Messaging topic you configured for the `sap-em-sink`:
     ```
     export PULSAR2SAP="pulsar2sap"
   
-    curl --location --request POST "${QUEUE_API}/${PULSAR2SAP}/messages/consumption" \
-    --header 'x-qos: 0' \
-    --header 'Authorization: Bearer ${ACCESS_TOKEN}' \
-    --header 'Content-Type: application/json'   
+    curl --location
+        --request POST "${QUEUE_API}/${PULSAR2SAP}/messages/consumption" \
+        --header 'x-qos: 0' \   
+        --header 'Authorization: Bearer ${ACCESS_TOKEN}' \
+        --header 'Content-Type: application/json'   
     ```
 
-## Deploy
-
-TODO
-
 ## Use
+Create a YAML configuration file similar to
+
+```
+configs:
+  connectionName:   connection name
+  xsappname:        application name
+  tokenEndpoint:    token endpoint URL
+  clientID:         client ID
+  clientSecret:     client secret
+  serviceURL:       SAP EM Service URL
+  destination:      queue:name or topic:name
+```
+
+SAP Enterprise Messaging sinks may produce messages on a queue or publish messages to a topic. If the `queue:`
+or `topic:` prefix is left out the destination is assumed to be a queue.
+
+SAP Enterprise Messaging sources must consume messages from a queue. Subscriptions 
+are managed in SAP Enterprise Messaging that will route messages from the topic
+to a queue. 
 
 Field                 | Required | Default  | Description
 --------------------- | -------- | -------- | ------------
@@ -133,11 +149,31 @@ maxReconnectAttemptsn | `false`  | 20       | Maximum number of attempts at reco
 initialReconnectDelay | `false`  | 3000     | Delay in millis before reconnecting after the first failure.
 reconnectDelay        | `false`  | 5000     | Delay in millis between reeconnect attempts after the first.
 
+
+### Create a sap-em sink
+```
+pulsar-admin sinks create \
+--tenant public \
+--namespace default \
+--name  sap-em-sink \
+--inputs sap-em-topic \
+--sink-config-file sap-em-sink.yaml \
+    --archive target/sap-em-pulsar-connector-1.0.0-SNAPSHOT.nar
+```
+
+### Create a sap-em source
+```
+pulsar-admin sources create \
+--tenant public \
+--namespace default \
+--name  sap-em-source \
+--destination-topic-name sap-em-topic \
+--source-config-file ./sap-em-source.yaml \
+--archive ../target/sap-em-pulsar-connector-1.0.0-SNAPSHOT.nar 
+```
 ## Develop
 
-### IntelliJ configuration
-
-* https://projectlombok.org/setup/intellij    
+* [IntelliJ configuration](https://projectlombok.org/setup/intellij)    
 
 ## Reference
 
