@@ -28,8 +28,8 @@ Adapted from [Set up a standalone Pulsar locally](https://pulsar.apache.org/docs
 1. Open a **second** terminal window and change to the `sap-em-pulsar-connector` source directory
 1. Copy the `sap-em-source-example.yaml` and `sap-em-sink-example.yaml` examples to the pulsar home directory 
     ```
-    cp sap-em-source-example.yaml apache-pulsar-2.6.1/sap-em-source.yaml
-    cp sap-em-sink-example.yaml apache-pulsar-2.6.1/sap-em-sink.yaml
+    cp sap-em-example.yaml apache-pulsar-2.6.1/sap-em-source.yaml
+    cp sap-em-example.yaml apache-pulsar-2.6.1/sap-em-sink.yaml
     ```
 1. Edit the `sap-em-source.yaml` and `sap-em-source.yaml` configs with the correct correct values for your 
 SAP Enterprise Messaging instance.
