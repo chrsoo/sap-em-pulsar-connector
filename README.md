@@ -1,5 +1,8 @@
 # sap-em-pulsar-connector
-SAP Enterprise Messaging Connector for Apache Pulsar
+SAP Enterprise Messaging Connector (`sap-em`) for Apache Pulsar. Provides 
+both a **source** for consuming messagings from a SAP EM **queue** and **sink**
+for producing messages to a SAP EM **queue** or publishing messaging to a SAP EM 
+**topic**.
 
 ## Build
 ```
@@ -158,7 +161,7 @@ pulsar-admin sinks create \
 --name  sap-em-sink \
 --inputs sap-em-topic \
 --sink-config-file sap-em-sink.yaml \
-    --archive target/sap-em-pulsar-connector-1.0.0-SNAPSHOT.nar
+--archive target/sap-em-pulsar-connector-1.0.0-SNAPSHOT.nar
 ```
 
 ### Create a sap-em source
